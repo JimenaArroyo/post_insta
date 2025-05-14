@@ -1,12 +1,16 @@
 from flask import Flask
 
-
-#import pandas as pd
+from instagrapi import Client
+import pandas as pd
 import requests_cache
 from retry_requests import retry
 import openmeteo_requests
-
+import jsonify
 app = Flask(__name__)
+
+# Configuración para la cuenta de Instagram
+INSTAGRAM_USER = "la_prieta_linda_pyn"
+INSTAGRAM_PASS = "BrunoBowser2"
 
 
 def obtener_temperatura():
@@ -47,10 +51,32 @@ def obtener_temperatura():
     hourly_dataframe = pd.DataFrame(data = hourly_data)
     temperatura_actual = hourly_dataframe.iloc[0]  
     print(f"Temperatura actual (aproximada): {temperatura_actual['temperature_2m']} °C")
-    return temperatura_actual
+    data = str(temperatura_actual.temperature_2m)
+    return data
+
+def subir_historia():
+    cl = Client()
+    cl.login(INSTAGRAM_USER, INSTAGRAM_PASS)
+
+
+    imagen = "historia.png"
+    texto = "¡Hace calor en Morelia! Ven por tu nieve ❄"
+
+    cl.photo_upload_to_story(imagen, texto)
+
+@app.route("/verificar_y_publicar", methods=["GET"])
+def verificar_y_publicar():
+    temp = float(obtener_temperatura())
+    if temp > 26:
+        subir_historia()
+        return f"Temperatura: {temp}°C. Historia publicada en Instagram."
+    else:
+        return f"Temperatura: {temp}°C. No se publica nada."
+
 
 @app.route('/')
 def index():
-    return obtener_temperatura
-if __name__ == '__main__':
+    return verificar_y_publicar()
+
+if __name__ == "__main__":
     app.run(debug=True)
